@@ -252,7 +252,7 @@ public class Main {
         jComboBox.addItem("比較OAEP與RSA的密文");
 
         // 先加密再簽的佈局 1
-        JLabel ptLabel_1 = new JLabel("明文:");
+        JLabel ptLabel_1 = new JLabel("訊息:");
         ptLabel_1.setBounds(10,200,80,25);
         ptLabel_1.setVisible(false);
         panel.add(ptLabel_1);
@@ -300,7 +300,7 @@ public class Main {
         decryptButton_1.setBounds(10, 410, 580, 25);
         decryptButton_1.setVisible(false);
         panel.add(decryptButton_1);
-        JLabel decryptLabel_1 = new JLabel("明文:");
+        JLabel decryptLabel_1 = new JLabel("訊息:");
         decryptLabel_1.setBounds(10,440,80,25);
         decryptLabel_1.setVisible(false);
         panel.add(decryptLabel_1);
@@ -628,8 +628,10 @@ public class Main {
                     byte[] signature_value = hexStringToByteArray(signature_1.getText());
                     if (RSA_PSS_Verify_Byte(signature_value, cipherText, senderPublicKey[0])){
                         verify_1.setText("驗證成功!!");
+                        decryptButton_1.setEnabled(true);
                     } else{
                         verify_1.setText("驗證失敗");
+                        decryptButton_1.setEnabled(false);
                     }
                 } catch (NoSuchAlgorithmException ex) {
                     throw new RuntimeException(ex);
@@ -711,17 +713,42 @@ public class Main {
                 try {
                     decryptedSign_2.setText(bytesToHex(RSA_OAEP_Decrypt_SignFirst(ct_sign, receiverPrivateKey[0])));
                     decryptedMessage_2.setText(RSA_OAEP_Decrypt_Byte(ct_message, receiverPrivateKey[0]));
+                    verifyButton_2.enable(true);
                 } catch (NoSuchPaddingException ex) {
+                    decryptedSign_2.setText("OAEP 解碼發生錯誤");
+                    decryptedMessage_2.setText("OAEP 解碼發生錯誤");
+                    verifyButton_2.enable(false);
+                    verify_2.setText("");
                     throw new RuntimeException(ex);
                 } catch (NoSuchAlgorithmException ex) {
+                    decryptedSign_2.setText("OAEP 解碼發生錯誤");
+                    decryptedMessage_2.setText("OAEP 解碼發生錯誤");
+                    verifyButton_2.enable(false);
+                    verify_2.setText("");
                     throw new RuntimeException(ex);
                 } catch (InvalidAlgorithmParameterException ex) {
+                    decryptedSign_2.setText("OAEP 解碼發生錯誤");
+                    decryptedMessage_2.setText("OAEP 解碼發生錯誤");
+                    verifyButton_2.enable(false);
+                    verify_2.setText("");
                     throw new RuntimeException(ex);
                 } catch (InvalidKeyException ex) {
+                    decryptedSign_2.setText("OAEP 解碼發生錯誤");
+                    decryptedMessage_2.setText("OAEP 解碼發生錯誤");
+                    verifyButton_2.enable(false);
+                    verify_2.setText("");
                     throw new RuntimeException(ex);
                 } catch (IllegalBlockSizeException ex) {
+                    decryptedSign_2.setText("OAEP 解碼發生錯誤");
+                    decryptedMessage_2.setText("OAEP 解碼發生錯誤");
+                    verifyButton_2.enable(false);
+                    verify_2.setText("");
                     throw new RuntimeException(ex);
                 } catch (BadPaddingException ex) {
+                    decryptedSign_2.setText("OAEP 解碼發生錯誤");
+                    decryptedMessage_2.setText("OAEP 解碼發生錯誤");
+                    verifyButton_2.enable(false);
+                    verify_2.setText("");
                     throw new RuntimeException(ex);
                 }
             }
