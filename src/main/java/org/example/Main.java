@@ -1,6 +1,5 @@
 package org.example;
 import org.bouncycastle.jce.provider.BouncyCastleProvider;
-
 import javax.crypto.BadPaddingException;
 import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
@@ -23,6 +22,8 @@ import java.util.Arrays;
 
 public class Main {
     public static void RSA_KEY_Generator() throws IOException, NoSuchAlgorithmException {
+        // 生成一組鑰匙，包含receiver的公私鑰與sender的公私鑰，並將它們存在目錄中
+
         // 生成sender的key pair
         KeyPairGenerator generator1 = KeyPairGenerator.getInstance("RSA");
         generator1.initialize(1024);
@@ -64,35 +65,36 @@ public class Main {
         }
     }
     public static PrivateKey getPrivateKey(String filename) throws Exception {
+        // 讀取private key
         byte[] keyBytes = Files.readAllBytes(new File(filename).toPath());
         PKCS8EncodedKeySpec spec = new PKCS8EncodedKeySpec(keyBytes);
         KeyFactory kf = KeyFactory.getInstance("RSA");
         return kf.generatePrivate(spec);
     }
     public static PublicKey getPublicKey(String filename) throws Exception {
-        // getting byte data of private key
+        // 讀取public key
         byte[] publicKeyBytes = Files.readAllBytes(new File(filename).toPath());
-        // creating keyspec object
         EncodedKeySpec publicKeySpec = new X509EncodedKeySpec(publicKeyBytes);
-        // creating object of keyfactory
         KeyFactory keyFactory = KeyFactory.getInstance("RSA");
-        // generating private key from the provided key spec and return
         return keyFactory.generatePublic(publicKeySpec);
     }
     public static byte[] RSA_OAEP_Encrypt_String(String plainText, PublicKey publicKey) throws IllegalBlockSizeException, BadPaddingException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException {
-        Cipher oaepFromAlgo = Cipher.getInstance("RSA/ECB/OAEPWITHSHA-256ANDMGF1PADDING");
-        oaepFromAlgo.init(Cipher.ENCRYPT_MODE, publicKey);
-        byte[] ct = oaepFromAlgo.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
+        // 將input明文做OAEP加密，output為密文
+        Cipher oaep = Cipher.getInstance("RSA/ECB/OAEPWITHSHA-256ANDMGF1PADDING");
+        oaep.init(Cipher.ENCRYPT_MODE, publicKey);
+        byte[] ct = oaep.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
         return ct;
     }
     public static String RSA_OAEP_Decrypt_Byte(byte[] cipherText, PrivateKey privateKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
-        Cipher oaepFromInit = Cipher.getInstance("RSA/ECB/OAEPPadding");
+        // 將input bytes做OAEP解密，output為明文
+        Cipher oaep = Cipher.getInstance("RSA/ECB/OAEPPadding");
         OAEPParameterSpec oaepParams = new OAEPParameterSpec("SHA-256", "MGF1", new MGF1ParameterSpec("SHA-1"), PSource.PSpecified.DEFAULT);
-        oaepFromInit.init(Cipher.DECRYPT_MODE, privateKey, oaepParams);
-        byte[] pt = oaepFromInit.doFinal(cipherText);
+        oaep.init(Cipher.DECRYPT_MODE, privateKey, oaepParams);
+        byte[] pt = oaep.doFinal(cipherText);
         return new String(pt, StandardCharsets.UTF_8);
     }
     public static byte[] RSA_OAEP_Encrypt_SignFirst(byte[] plainText, PublicKey publicKey) throws IllegalBlockSizeException, BadPaddingException, NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException {
+        // 將input的簽章做OAEP加密(由於rsa-oaep加密一次最長只能62bytes，而簽章為128bytes，所以將簽章做切割後加密)，output為密文
         Cipher oaepFromAlgo = Cipher.getInstance("RSA/ECB/OAEPWITHSHA-256ANDMGF1PADDING");
         oaepFromAlgo.init(Cipher.ENCRYPT_MODE, publicKey);
         byte[] pt1 = Arrays.copyOfRange(plainText, 0, 62);
@@ -109,6 +111,7 @@ public class Main {
         return ct;
     }
     public static byte[] RSA_OAEP_Decrypt_SignFirst(byte[] cipherText, PrivateKey privateKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+        // 將input的密文做OAEP解密成明文簽章(將密文解密後合併)，output為明文的byte array
         Cipher oaepFromInit = Cipher.getInstance("RSA/ECB/OAEPPadding");
         OAEPParameterSpec oaepParams = new OAEPParameterSpec("SHA-256", "MGF1", new MGF1ParameterSpec("SHA-1"), PSource.PSpecified.DEFAULT);
         oaepFromInit.init(Cipher.DECRYPT_MODE, privateKey, oaepParams);
@@ -124,15 +127,16 @@ public class Main {
         System.arraycopy(pt1, 0, pt, 0, pt1.length);
         System.arraycopy(pt2, 0, pt, pt1.length, pt2.length);
         System.arraycopy(pt3, 0, pt, pt1.length+pt2.length, pt3.length);
-        //byte[] pt = oaepFromInit.doFinal(cipherText.getBytes(StandardCharsets.UTF_8));
         return pt;
     }
     public static byte[] RSA_Encrypt(String plainText, PublicKey publicKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+        // 將input的明文做RSA加密，output為密文
         Cipher normalRSA = Cipher.getInstance("RSA/ECB/NoPadding");
         normalRSA.init(Cipher.ENCRYPT_MODE, publicKey);
         return normalRSA.doFinal(plainText.getBytes(StandardCharsets.UTF_8));
     }
     public static String RSA_Decrypt(byte[] cipherText, PrivateKey privateKey) throws NoSuchPaddingException, NoSuchAlgorithmException, InvalidAlgorithmParameterException, InvalidKeyException, IllegalBlockSizeException, BadPaddingException {
+        // 將input的密文做RSA解密，output為明文
         Cipher normalRSA_d = Cipher.getInstance("RSA/ECB/NoPadding");
         normalRSA_d.init(Cipher.DECRYPT_MODE, privateKey);
         byte[] normal_pt = normalRSA_d.doFinal(cipherText);
@@ -140,6 +144,7 @@ public class Main {
     }
     private static final char[] HEX_ARRAY = "0123456789ABCDEF".toCharArray();
     public static String bytesToHex(byte[] bytes) {
+        // 將bytes轉成十六進位的字串
         char[] hexChars = new char[bytes.length * 2];
         for (int j = 0; j < bytes.length; j++) {
             int v = bytes[j] & 0xFF;
@@ -149,6 +154,7 @@ public class Main {
         return new String(hexChars);
     }
     public static byte[] hexStringToByteArray(String s) {
+        // 將十六進位的字串轉為byte array
         int len = s.length();
         byte[] data = new byte[len / 2];
         for (int i = 0; i < len; i += 2) {
@@ -158,7 +164,7 @@ public class Main {
         return data;
     }
     public static byte[] RSA_PSS_Sign_String(String message, PrivateKey privateKey) throws InvalidKeyException, NoSuchAlgorithmException, SignatureException {
-        //https://www.yiibai.com/java_cryptography/java_cryptography_verifying_signature.html
+        // 將input的訊息做RSA-PSS簽章，output為簽章
         Signature sign = Signature.getInstance("SHA1withRSA/PSS");
         sign.initSign(privateKey);
         byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
@@ -166,7 +172,7 @@ public class Main {
         return sign.sign();
     }
     public static byte[] RSA_PSS_Sign_Byte(byte[] message, PrivateKey privateKey) throws InvalidKeyException, NoSuchAlgorithmException, SignatureException {
-        //https://www.yiibai.com/java_cryptography/java_cryptography_verifying_signature.html
+        // 將input的bytes做RSA-PSS簽章，output為簽章
         Signature sign = Signature.getInstance("SHA1withRSA/PSS");
         sign.initSign(privateKey);
         byte[] bytes = message;
@@ -174,6 +180,7 @@ public class Main {
         return sign.sign();
     }
     public static boolean RSA_PSS_Verify_String(byte[] signature, String message,PublicKey publicKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+        // 將input的訊息(string)與簽章做RSA-PSS驗證，output為true or false
         Signature sign = Signature.getInstance("SHA1withRSA/PSS");
         sign.initVerify(publicKey);
         byte[] bytes = message.getBytes(StandardCharsets.UTF_8);
@@ -181,6 +188,7 @@ public class Main {
         return sign.verify(signature);
     }
     public static boolean RSA_PSS_Verify_Byte(byte[] signature, byte[] message,PublicKey publicKey) throws NoSuchAlgorithmException, InvalidKeyException, SignatureException {
+        // 將input的訊息(bytes)與簽章做RSA-PSS驗證，output為true or false
         Signature sign = Signature.getInstance("SHA1withRSA/PSS");
         sign.initVerify(publicKey);
         byte[] bytes = message;
@@ -188,18 +196,19 @@ public class Main {
         return sign.verify(signature);
     }
     private static void createAndShowGUI() throws Exception {
-        // 创建 JFrame 实例
+        // 為製作UI介面的function
         JFrame frame = new JFrame("資安期末報告-第二組-RSA-OAEP與RSA-PSS");
-        // Setting the width and height of frame
         frame.setSize(600, 800);
         frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         JPanel panel = new JPanel();
-        // 添加面板
         frame.add(panel);
         placeComponents(panel);
         frame.setVisible(true);
     }
     private static void placeComponents(JPanel panel) throws Exception {
+        // 為配置UI介面的function(由於不為重點，不詳細解釋)
+
+        // 將key讀入
         final PublicKey[] receiverPublicKey = {getPublicKey("receiverPublicKey")};
         final PrivateKey[] receiverPrivateKey = {getPrivateKey("receiverPrivateKey")};
         final PublicKey[] senderPublicKey = {getPublicKey("senderPublicKey")};
@@ -801,7 +810,9 @@ public class Main {
         if (Security.getProvider(BouncyCastleProvider.PROVIDER_NAME) == null) {
             Security.addProvider(new BouncyCastleProvider());
         }
-
+        RSA_KEY_Generator();
+        // 以下為測試function時的程式碼：
+        /*
         RSA_KEY_Generator();
         PublicKey publicKey = getPublicKey("publicKey");
         PrivateKey privateKey = getPrivateKey("privateKey");
@@ -823,8 +834,9 @@ public class Main {
         cipherText = RSA_OAEP_Encrypt_SignFirst(signature, publicKey);
 
         System.out.println(bytesToHex(RSA_OAEP_Decrypt_SignFirst(cipherText,privateKey)));
+         */
 
-
+        // 跑UI介面，開始程式
         javax.swing.SwingUtilities.invokeLater(new Runnable() {
             public void run() {
                 try {
